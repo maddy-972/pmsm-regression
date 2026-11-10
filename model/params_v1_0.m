@@ -24,8 +24,13 @@ P.Ki_d  = P.Kp_d*P.Rs/P.Ld;    % = 66.7 V/(A s)
 P.Ki_q  = P.Kp_q*P.Rs/P.Lq;    % = 66.7 V/(A s)
 
 % Speed controller: placeholder, tuned in next step
-P.Kp_w  = 0;
-P.Ki_w  = 0;
+% Speed controller: symmetric optimum
+% Closed current loop ~ PT1 with 2*Tsig, plus 1 Ts speed sampling delay
+P.Kt     = 1.5*P.p*P.psi;           % torque constant (id = 0) = 0.42 Nm/A
+P.a      = 4;                       % SO design factor (2 = fast, 4 = robust)
+P.Tsig_w = 2*P.Tsig + P.Ts;         % equivalent small time constant = 0.4 ms
+P.Kp_w   = P.J/(P.a*P.Kt*P.Tsig_w); % = 595 A/(rad/s)
+P.Ki_w   = P.Kp_w/(P.a^2*P.Tsig_w); % Ti = a^2*Tsig_w = 6.4 ms
 
 % Simulation
 P.Tsim  = 1e-5;    % fixed solver step [s] = Ts/10
