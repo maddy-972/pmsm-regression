@@ -29,4 +29,4 @@ P.Ki_w  = 0;
 
 % Simulation
 P.Tsim  = 1e-5;    % fixed solver step [s] = Ts/10
-P.version = "1.0";
+model_version = "1.0";
