@@ -28,20 +28,20 @@ def overshoot_pct(t, y, target, t_start, t_end=None):
     return float(max(0.0, beyond.max()) / abs(step) * 100)
 
 
-def settling_time(t, y, target, t_start, band=0.02, t_end=None):
-    """Time after t_start until y stays within +-band*|step| of target. NaN if never."""
+def settling_time(t, y, target, t_start, band=0.02, t_end=None, tol=None):
+    """Time after t_start until y stays within tolerance of target. NaN if never.
+    tol: absolute tolerance (use for disturbance recovery);
+    otherwise band * |step size| (use for reference steps)."""
     w = _window(t, t_start, t_end)
     tw, yw = t[w], y[w]
-    tol = band * abs(target - yw[0])
+    tol = band * abs(target - yw[0]) if tol is None else tol
     outside = np.where(np.abs(yw - target) > tol)[0]
     if outside.size == 0:
         return 0.0
     last = outside[-1]
     if last == len(yw) - 1:
-        return float("nan")                            # still outside at the end
+        return float("nan")
     return float(tw[last + 1] - t_start)
-
-
 def max_dip(t, y, target, t_start, t_end=None):
     """Largest drop below target (e.g. speed dip after a load step)."""
     w = _window(t, t_start, t_end)

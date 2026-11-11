@@ -5,3 +5,12 @@ inputs:
   w_ref: {type: step, time: 0.01, final: 50}
   TL: 0
   iq_offset: 0
+  
+checks:
+  requirements:
+    - {name: speed_overshoot, metric: overshoot, signal: wm, target: 50, t_start: 0.01, max: 2.0, unit: "%"}
+    - {name: speed_settling, metric: settling_time, signal: wm, target: 50, t_start: 0.01, band: 0.02, max: 0.25, unit: s}
+    - {name: current_limit, metric: max, signal: iq, max: 255, unit: A}
+  baseline:
+    - {signal: wm, max_dev: 0.5, rms: 0.1}
+    - {signal: iq, max_dev: 5.0, rms: 1.0}

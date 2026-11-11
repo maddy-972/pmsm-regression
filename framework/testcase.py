@@ -1,5 +1,5 @@
 """Test case definition, loaded from YAML. No MATLAB dependency."""
-from dataclasses import dataclass
+from dataclasses import dataclass,field
 from pathlib import Path
 
 import yaml
@@ -30,13 +30,14 @@ class TestCase:
     description: str
     t_stop: float
     inputs: dict
-
+    checks: dict = field(default_factory=dict)
     @classmethod
     def from_yaml(cls, path: str | Path) -> "TestCase":
         with open(path, encoding="utf-8") as f:
             d = yaml.safe_load(f)
         return cls(name=d["name"], description=d.get("description", ""),
-                   t_stop=float(d["t_stop"]), inputs=d.get("inputs", {}))
+             t_stop=float(d["t_stop"]), inputs=d.get("inputs", {}),
+             checks=d.get("checks", {}))
 
     def profiles(self) -> dict[str, Profile]:
         """Input tables keyed by the MATLAB variable names."""

@@ -5,4 +5,11 @@ inputs:
   w_ref: {type: step, time: 0.01, final: 50}
   TL: {type: step, time: 0.5, final: 50}
   iq_offset: 0
-  
+checks:
+  requirements:
+    - {name: load_dip, metric: max_dip, signal: wm, target: 50, t_start: 0.5, max: 0.5, unit: rad/s}
+    - {name: load_recovery, metric: settling_time, signal: wm, target: 50, t_start: 0.5, tol: 0.05, max: 0.2, unit: s}
+    - {name: current_limit, metric: max, signal: iq, max: 255, unit: A}
+  baseline:
+    - {signal: wm, max_dev: 0.5, rms: 0.1}
+    - {signal: iq, max_dev: 5.0, rms: 1.0} 
