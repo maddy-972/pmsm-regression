@@ -40,3 +40,11 @@ class MatlabRunner(SimulationRunner):
         signals = {k: np.asarray(v).ravel() for k, v in res.items() if k not in META_FIELDS}
         return Result(test_name=tc.name, version=str(res["version"]),
                       param_file=str(res["param_file"]), signals=signals)
+class Mf4ReplayRunner(SimulationRunner):
+
+    def __init__(self, data_dir: str | Path):
+         self.data_dir = Path(data_dir)
+
+    def run(self, tc: TestCase, param_file: str = "params_v1_0") -> Result:
+         return Result.from_mf4(self.data_dir / f"{tc.name}.mf4")
+
