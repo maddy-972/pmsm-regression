@@ -1,0 +1,29 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies (no MATLAB)
+        run: pip install -r requirements-ci.txt
+
+      - name: Unit tests
+        run: pytest -v
+
+      - name: Regression validation (replay recorded baselines)
+        run: python -m framework.validate_release --replay baselines/v1.0
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-report
+          path: reports/*.html
