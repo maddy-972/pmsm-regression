@@ -1,0 +1,7 @@
+name: TC01_speed_step
+description: Speed step 0 -> 50 rad/s at no load. Acceleration at current limit, then settling.
+t_stop: 0.5
+inputs:
+  w_ref: {type: step, time: 0.01, final: 50}
+  TL: 0
+  iq_offset: 0

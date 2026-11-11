@@ -1,0 +1,8 @@
+name: TC02_load_step
+description: At 50 rad/s, load torque step 0 -> 50 Nm. Disturbance rejection of the speed loop.
+t_stop: 1.0
+inputs:
+  w_ref: {type: step, time: 0.01, final: 50}
+  TL: {type: step, time: 0.5, final: 50}
+  iq_offset: 0
+  

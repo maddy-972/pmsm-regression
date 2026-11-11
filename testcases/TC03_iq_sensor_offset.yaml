@@ -1,0 +1,7 @@
+name: TC03_iq_sensor_offset
+description: Fault injection - 20 A offset on measured iq at 0.7 s under 50 Nm load.
+t_stop: 1.0
+inputs:
+  w_ref: {type: step, time: 0.01, final: 50}
+  TL: {type: step, time: 0.5, final: 50}
+  iq_offset: {type: step, time: 0.7, final: 20}
