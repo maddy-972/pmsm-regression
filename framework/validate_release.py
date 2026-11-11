@@ -5,6 +5,7 @@ from contextlib import nullcontext
 from pathlib import Path
 
 from .regression import evaluate
+from .report import write_report
 from .result import Result
 from .runner import MatlabRunner, Mf4ReplayRunner
 from .testcase import TestCase
@@ -23,25 +24,30 @@ def main() -> int:
     base_dir = ROOT / "baselines" / args.baseline
     runner_cm = nullcontext(Mf4ReplayRunner(args.replay)) if args.replay else MatlabRunner(ROOT / "model")
 
-    reports = []
+    items = []                                   # (TestCase, TestReport, run, baseline)
     with runner_cm as runner:
         for tc in cases:
             run = runner.run(tc, args.params)
-            if not args.replay:                                   # keep the run for the report
+            if not args.replay:
                 p = ROOT / "reports" / "runs" / f"v{run.version}" / f"{tc.name}.mf4"
                 p.parent.mkdir(parents=True, exist_ok=True)
                 run.to_mf4(p)
-            reports.append(evaluate(tc, run, Result.from_mf4(base_dir / f"{tc.name}.mf4")))
+            base = Result.from_mf4(base_dir / f"{tc.name}.mf4")
+            items.append((tc, evaluate(tc, run, base), run, base))
 
-    for rep in reports:
+    for _, rep, _, _ in items:
         print(f"\n{rep.test_name}  [{'PASS' if rep.passed else 'FAIL'}]  "
               f"v{rep.version} vs baseline v{rep.baseline_version}")
         for c in rep.checks:
             print(f"  {c.kind:<4} {c.name:<16} {c.value:10.4g} {c.unit:<6} <= {c.limit:<8g} "
                   f"{'PASS' if c.passed else 'FAIL'}")
 
-    n_fail = sum(not r.passed for r in reports)
-    print(f"\n{len(reports) - n_fail}/{len(reports)} test cases passed")
+    command = "python -m framework.validate_release " + " ".join(sys.argv[1:])
+    out = write_report(items, ROOT / "reports" / f"report_v{items[0][2].version}_vs_{args.baseline}.html",
+                       command)
+    n_fail = sum(not rep.passed for _, rep, _, _ in items)
+    print(f"\n{len(items) - n_fail}/{len(items)} test cases passed")
+    print(f"Report: {out.relative_to(ROOT)}")
     return 1 if n_fail else 0
 
 
