@@ -1,0 +1,30 @@
+# Post-processing configuration: virtual bench speed-torque sweep
+measurement:
+  file: bench/data/bench_sweep_raw.mf4
+  truth: bench/data/sweep_truth.csv        # optional ground truth (synthetic data only)
+  master: T_shaft                          # common time base = native samples of this channel
+  channels:                                # internal name: channel name in the MF4 file
+    n_rpm: n_rpm
+    T_shaft: T_shaft
+    Udc: Udc
+    Idc: Idc
+    id: id
+    iq: iq
+    ud: ud
+    uq: uq
+
+cleaning:
+  spikes: {channels: [T_shaft], k: 8}
+  frozen: {channels: [T_shaft], min_len: 50}
+  offset: {channel: T_shaft, n_max_rpm: 5}
+
+steady_state: {win_s: 0.3, n_std_max: 3.0, T_std_max: 0.5, n_min: 50, min_dur: 0.8, margin: 0.1}
+
+motor: {p: 4, psi: 0.07, Lq: 1.2e-3, Rs: 0.02, Udc: 300, Imax: 250}   # datasheet values
+
+limits:
+  - {name: eta_motor_high_speed, kpi: eta_motor, stat: min, where: {n_rpm: [900, .inf], torque_Nm: [50, .inf]}, min: 0.85}
+  - {name: max_total_loss, kpi: P_loss_total_W, stat: max, max: 3000, unit: W}
+  - {name: valid_points, quality: n_points, min: 40}
+  - {name: frozen_sensor_time, quality: frozen_s, max: 0.5, unit: s}
+  - {name: torque_zero_offset, quality: offset_Nm, max: 0.5, unit: Nm}

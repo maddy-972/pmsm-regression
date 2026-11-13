@@ -1,0 +1,15 @@
+import pandas as pd
+
+from postproc.kpi import evaluate_limits
+
+
+def test_limits_pass_and_fail():
+    pts = pd.DataFrame({"n_rpm": [500, 1000, 1000], "torque_Nm": [50, 50, 100],
+                        "eta_motor": [0.80, 0.90, 0.84]})
+    res = {"points": pts, "quality": {"n_points": 3}}
+    limits = [{"name": "eta_hs", "kpi": "eta_motor", "stat": "min",
+               "where": {"n_rpm": [900, float("inf")]}, "min": 0.85},
+              {"name": "enough", "quality": "n_points", "min": 3}]
+    out = evaluate_limits(limits, res)
+    assert [o["passed"] for o in out] == [False, True]
+    assert out[0]["value"] == 0.84
