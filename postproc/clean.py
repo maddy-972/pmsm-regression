@@ -33,7 +33,12 @@ def frozen_segments(y, min_len: int = 50) -> list[tuple[int, int]]:
     return [(int(s), int(e)) for s, e in zip(starts, ends) if e - s + 1 >= min_len]
 
 
-def standstill_offset(n_rpm, y, n_max: float = 5.0) -> tuple[float, int]:
-    """Zero-point offset of a sensor, estimated where the motor stands still (true value 0)."""
-    still = (np.abs(n_rpm) < n_max) & ~np.isnan(y)
-    return float(np.median(y[still])), int(still.sum())
+def standstill_offset(n_rpm, y, n_max: float = 5.0, win: int = 300, n_std_max: float = 3.0):
+    """Zero-point offset from steady standstill (true torque = 0). Samples passing through
+    zero speed during acceleration or braking are excluded via a rolling speed std."""
+    n = pd.Series(np.asarray(n_rpm, float))
+    steady = (n.rolling(win, center=True).std() < n_std_max).to_numpy()
+    still = (np.abs(n.to_numpy()) < n_max) & steady & ~np.isnan(y)
+    vals = y[still]
+    u = float(1.2533 * vals.std(ddof=1) / np.sqrt(vals.size))   # standard error of the median
+    return float(np.median(vals)), u, int(vals.size)

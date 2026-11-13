@@ -1,6 +1,7 @@
-"""Steady-state detection and operating-point extraction."""
+"""Steady-state detection, operating-point extraction with uncertainty, truth comparison."""
 import numpy as np
 import pandas as pd
+K95 = 2.26
 
 
 def steady_windows(df, win_s=0.3, n_std_max=3.0, T_std_max=0.5, n_min=50.0,
@@ -23,27 +24,41 @@ def steady_windows(df, win_s=0.3, n_std_max=3.0, T_std_max=0.5, n_min=50.0,
     return out
 
 
-def operating_points(df, windows) -> pd.DataFrame:
-    """Mean values and derived quantities for each steady-state window."""
+def _block_sem(x, n_blocks: int = 10) -> float:
+    """Standard error of the mean from block means (robust to correlated samples)."""
+    m = np.array([b.mean() for b in np.array_split(np.asarray(x, float), n_blocks)])
+    return float(m.std(ddof=1) / np.sqrt(len(m)))
+
+
+def operating_points(df, windows, u_T_offset: float = 0.0) -> pd.DataFrame:
+    """Mean values, derived powers, efficiencies and their standard uncertainty per window."""
     rows = []
     for t0, t1 in windows:
         d = df[(df["t"] >= t0) & (df["t"] <= t1)]
         w = d["n_rpm"] * 2 * np.pi / 60
-        p_sh = float((d["T_shaft"] * w).mean())
-        p_el = float((1.5 * (d["ud"] * d["id"] + d["uq"] * d["iq"])).mean())
-        p_dc = float((d["Udc"] * d["Idc"]).mean())
+        ps = d["T_shaft"] * w 
+        pe = 1.5 * (d["ud"] * d["id"] + d["uq"] * d["iq"])
+        pd_ = d["Udc"] * d["Idc"]
+        p_sh, p_el, p_dc = float(ps.mean()), float(pe.mean()), float(pd_.mean())
+        eta_m, eta_s = p_sh / p_el, p_sh / p_dc
+        u_sh, u_el, u_dc = _block_sem(ps), _block_sem(pe), _block_sem(pd_)
         rows.append({"t_start": t0, "t_end": t1, "speed_rad_s": float(w.mean()),
-                     "torque_Nm": float(d["T_shaft"].mean()), "P_shaft_W": p_sh,
-                     "P_el_W": p_el, "P_dc_W": p_dc,
-                     "eta_motor": p_sh / p_el, "eta_system": p_sh / p_dc})
+                     "torque_Nm": float(d["T_shaft"].mean()),
+                     "P_shaft_W": p_sh, "P_el_W": p_el, "P_dc_W": p_dc,
+                     "i_sq_A2": float((d["id"] ** 2 + d["iq"] ** 2).mean()),
+                     "eta_motor": eta_m, "eta_system": eta_s,
+                     "u_eta_motor": eta_m * float(np.hypot(np.hypot(u_sh / p_sh, u_T_offset / d["T_shaft"].mean()), u_el / p_el)),
+                     "u_eta_system": eta_s * float(np.hypot(np.hypot(u_sh / p_sh, u_T_offset / d["T_shaft"].mean()), u_dc / p_dc))})
     return pd.DataFrame(rows)
 
 
 def compare_with_truth(points: pd.DataFrame, truth: pd.DataFrame) -> pd.DataFrame:
-    """Match detected points to truth by time, report errors (efficiency in %-points)."""
+    """Match detected points to truth by time; errors and uncertainties in %-points."""
     out = truth.copy()
     out["found"] = False
-    for col in ("err_speed", "err_torque", "err_eta_motor_pp", "err_eta_system_pp"):
+    cols = ("err_speed", "err_torque", "err_eta_motor_pp", "err_eta_system_pp",
+            "u_eta_motor_pp", "u_eta_system_pp")
+    for col in cols:
         out[col] = np.nan
     for _, p in points.iterrows():
         mid = (p.t_start + p.t_end) / 2
@@ -55,4 +70,6 @@ def compare_with_truth(points: pd.DataFrame, truth: pd.DataFrame) -> pd.DataFram
             out.loc[i, "err_torque"] = p.torque_Nm - truth.at[i, "torque_Nm"]
             out.loc[i, "err_eta_motor_pp"] = 100 * (p.eta_motor - truth.at[i, "eta_motor"])
             out.loc[i, "err_eta_system_pp"] = 100 * (p.eta_system - truth.at[i, "eta_system"])
+            out.loc[i, "u_eta_motor_pp"] = 100 * p.u_eta_motor
+            out.loc[i, "u_eta_system_pp"] = 100 * p.u_eta_system
     return out
