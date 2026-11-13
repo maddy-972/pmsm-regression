@@ -22,14 +22,15 @@ validation teams work: measurement data in **ASAM MDF (`.mf4`)**, test definitio
 
 ```mermaid
 flowchart LR
-    Y[YAML test cases] --> R[MatlabRunner]
-    P[params_v1_x.m<br/>release under test] --> R
-    R -- MATLAB Engine API --> S[Simulink<br/>PMSM FOC model]
-    S --> M[Result<br/>.mf4]
-    M --> E[Regression engine<br/>requirement + baseline checks]
-    B[(Golden baselines<br/>v1.0 .mf4)] --> E
-    E --> H[HTML problem report]
-    B --> RR[Mf4ReplayRunner<br/>CI, no MATLAB] --> E
+    Y["YAML test cases"] --> R["MatlabRunner"]
+    P["Parameter file<br/>release under test"] --> R
+    R -->|"MATLAB Engine API"| S["Simulink<br/>PMSM FOC model"]
+    S --> M["Result as MF4"]
+    M --> E["Regression engine<br/>requirement + baseline checks"]
+    B[("Golden baselines<br/>v1.0 MF4")] --> E
+    E --> H["HTML problem report"]
+    B --> RR["Mf4ReplayRunner<br/>CI, no MATLAB"]
+    RR --> E
 ```
 
 | Layer | Content |
@@ -84,15 +85,15 @@ fs = 10 kHz, current limit 250 A. Simplifications: average-value inverter, ideal
 
 ```mermaid
 flowchart LR
-    A[Raw .mf4<br/>10 kHz / 1 kHz / 100 Hz] --> B[Common time grid]
-    B --> C[Cleaning<br/>spikes · frozen sensor · zero offset]
-    C --> D[Steady-state detection]
-    D --> E[Operating points<br/>P_shaft · P_el · P_dc · η ± k·u]
-    E --> F[Efficiency maps<br/>loss breakdown]
-    E --> G[KPI limit checks]
-    F --> H[HTML report]
+    A["Raw MF4<br/>10 kHz, 1 kHz, 100 Hz"] --> B["Common time grid"]
+    B --> C["Cleaning<br/>spikes, frozen sensor, zero offset"]
+    C --> D["Steady-state detection"]
+    D --> E["Operating points<br/>powers, efficiency with uncertainty"]
+    E --> F["Efficiency maps<br/>loss breakdown"]
+    E --> G["KPI limit checks"]
+    F --> H["HTML report"]
     G --> H
-    K[YAML config<br/>channels · thresholds · limits] --> B
+    K["YAML config<br/>channels, thresholds, limits"] --> B
 ```
 
 ### Test data: a virtual test bench
